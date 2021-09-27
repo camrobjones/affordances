@@ -60,9 +60,9 @@ tokens and use cosine distance to compare a) the novel object from a *central*
     - `raw/`
         Raw text files with original stimuli
     - `clean/`
-        `stimuli.csv`: CSV of original data
-        `stimuli_processed.csv`: CSV of stimuli post-`wrangle.py`
-        `stimuli_analysed.csv`: CSV with NLM predictions
+        - `stimuli.csv`: CSV of original data
+        - `stimuli_processed.csv`: CSV of stimuli post-`wrangle.py`
+        - s`stimuli_analysed.csv`: CSV with NLM predictions
     - `nlm/`
         Python scripts to run NLM analyses
     - `stats/`

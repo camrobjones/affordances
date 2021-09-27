@@ -1,0 +1,428 @@
+---
+title: "Glenberg & Robertson (2000) NLM Baseline Analysis"
+author: "Cameron Jones"
+date: "27/09/2021"
+output:
+  html_document: 
+    toc: yes
+    toc_float: yes
+    theme: flatly
+    highlight: kate
+    code_folding: hide
+    number_sections: yes
+  # md_document:
+  #   variant: markdown_github
+---
+
+# Setup
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+# Load packages
+suppressMessages(library(tidyverse))
+suppressMessages(library(lmerTest))
+
+```
+
+
+Summary of the data:
+
+```{r}
+# Load and peek data
+stimuli <- read.csv("../data/clean/stimuli_analysed.csv")
+
+# Code condition as factor
+stimuli$condition <- recode(stimuli$condition,
+                            afforded = "Afforded",
+                            nonafforded = "Non-Afforded",
+                            related = "Related")
+
+stimuli$condition <- factor(stimuli$condition, levels=c("Related", "Afforded", "Non-Afforded"))
+
+# Analyse e1 and e2 separately
+e1 <- stimuli %>% filter(experiment == 1)
+e2 <- stimuli %>% filter(experiment == 2)
+
+summary(stimuli)
+```
+
+
+# Masked Surprisal of Distinguishing Words
+
+The first measure is the masked probability of the distinguishing word in the critical sentence.
+
+In item 13, for example, we find the surprisal for each distinguishing word {leaves, water, clothes} in the sentence:
+
+> Marissa forgot to bring her pillow on her camping trip. As a substitute for her pillow, she filled up an old sweater with [MASK].
+
+I've run all of the examples through BERT (base, uncased) and RoBERTA (base).
+
+```{r}
+
+e1 %>%
+  ggplot(aes(x = condition, y = bert_mask_all_mean, color=condition)) +
+  stat_summary(fun.data="mean_cl_boot", geom="pointrange") + 
+  theme_minimal() + 
+  theme(
+    legend.position = "none"
+  ) +
+  scale_color_manual("Condition",
+     values = c("#1eb809", "#2654d4", "#cc0502")) + 
+  labs(
+    y = "BERT surprisal",
+    x = "Condition"
+  )
+
+```
+
+```{r}
+
+
+e1 %>%
+  ggplot(aes(x = condition, y = roberta_mask_all_mean, color=condition)) +
+  stat_summary(fun.data="mean_cl_boot", geom="pointrange") + 
+  theme_minimal() + 
+  theme(
+    legend.position = "none"
+  ) +
+  scale_color_manual("Condition",
+     values = c("#1eb809", "#2654d4", "#cc0502")) + 
+  labs(
+    y = "RoBERTa surprisal",
+    x = "Condition"
+  )
+
+```
+
+Predictions from both models show a clear gap in surprisal between Related and Afforded/Non-Afforded, but no clear distinction between Afforded and Non-Afforded stimuli (suggesting that the models are not sensitive to the afforded manipulation).
+
+## Models
+
+To compare surprisal between conditions I created two different models: one to compare Afforded to Related, and one to compare Non-Afforded to Afforded. 
+
+### Related vs Afforded
+
+In both models I added a random intercept by item. I wanted to add a random slope (to control for the fact that there might variable influence of the manipulation on surprisal across items) but there are too few data points.
+
+The model summary (using `lmerTest` to get degrees of freedom) shows a significant positive effect of Afforded vs Related on BERT surprisal.
+
+```{r}
+
+# Comparison 1: Afforded to related
+e1.aff.rel <- e1 %>% filter(condition %in% c("Afforded", "Related"))
+
+m.aff.rel.bert.base <- lmer("bert_mask_all_mean ~ 1 + (1 | item)",
+                            data=e1.aff.rel,
+                            REML = F)
+m.aff.rel.bert.full <- lmer("bert_mask_all_mean ~ condition + (1 | item)",
+                            data=e1.aff.rel,
+                            REML = F)
+
+summary(m.aff.rel.bert.full)
+
+```
+
+An LRT also finds a significant improvement in fit for adding condition info.
+
+```{r}
+
+anova(m.aff.rel.bert.base, m.aff.rel.bert.full)
+
+```
+
+We see the same pattern of results with RoBERTa.
+
+```{r}
+
+# RoBERTa
+
+m.aff.rel.roberta.base <- lmer("roberta_mask_all_mean ~ 1 + (1 | item)",
+                            data=e1.aff.rel,
+                            REML = F)
+m.aff.rel.roberta.full <- lmer("roberta_mask_all_mean ~ condition + (1 | item)",
+                            data=e1.aff.rel,
+                            REML = F)
+
+summary(m.aff.rel.roberta.full)
+
+anova(m.aff.rel.roberta.base, m.aff.rel.roberta.full)
+
+```
+
+### Afforded vs Non-Afforded
+
+The lmerTest summary shows no significant effect on BERT surprisal for the Afforded/Non-Afforded distinction.
+
+```{r}
+
+# Comparison 2: Afforded to Non-Afforded
+e1.aff.naff <- e1 %>% filter(condition %in% c("Afforded", "Non-Afforded"))
+
+m.aff.naff.bert.base <- lmer("bert_mask_all_mean ~ 1 + (1 | item)",
+                            data=e1.aff.naff,
+                            REML = F)
+m.aff.naff.bert.full <- lmer("bert_mask_all_mean ~ condition + (1 | item)",
+                            data=e1.aff.naff,
+                            REML = F)
+
+summary(m.aff.naff.bert.full)
+
+```
+
+Neither does an LRT.
+
+```{r}
+
+anova(m.aff.naff.bert.base, m.aff.naff.bert.full)
+
+```
+
+Nor RoBERTa
+
+```{r}
+
+# RoBERTa
+
+m.aff.naff.roberta.base <- lmer("roberta_mask_all_mean ~ 1 + (1 | item)",
+                            data=e1.aff.naff,
+                            REML = F)
+m.aff.naff.roberta.full <- lmer("roberta_mask_all_mean ~ condition + (1 | item)",
+                            data=e1.aff.naff,
+                            REML = F)
+
+summary(m.aff.naff.roberta.full)
+
+anova(m.aff.naff.roberta.base, m.aff.naff.roberta.full)
+
+```
+
+Overall the results suggest that models are sensitive to the Related/Afforded distinction (lower surprisal for Related); but not sensitive to the affordances of non-related concepts.
+
+
+## Multi-token mask aggregation methods
+
+Some of the distinguishing concepts have multiple words (or tokens). There are different possible approaches to elicit probabilities for multi-word phrases. The one I've used above as a default (from [Kocijan et al., 2019](https://arxiv.org/abs/1905.06290)) is to:
+
+1. Generate a mask token for each token in the masked phrase.
+2. Find the surprisal for each token
+3. Find the mean of the token surprisals
+
+This seemed arbitrary to me and so I wanted to try some other aggregation methods:
+
+1. Summing instead of taking the mean of token surprisal (as this seems closer to total surprisal)
+2. Only masking one token at a time (to prevent penalising phrases where the tokens are individually very unlikely, but much more likely when conditioned on one another)
+
+This creates 4 different approaches for each model `sum` vs `log` and `mask_all` (default) vs `mask_one` (new). Varying this method changes the results quite dramatically:
+
+```{r}
+
+e1.mask.pivot <- e1 %>%
+  select(experiment, item, condition, contains("_mask_")) %>%
+  pivot_longer(cols=contains("_mask_"), names_to="measure", values_to="surprisal")
+
+e1.mask.pivot %>%
+  ggplot(aes(x = condition, y = surprisal, color=condition)) +
+  facet_wrap(vars(measure), nrow=2, scales="free_y") +
+  stat_summary(fun.data="mean_cl_boot", geom="pointrange") + 
+  theme_minimal() +
+  theme(
+    legend.position = "bottom",
+    axis.text.x = element_blank(),
+    axis.title.x = element_blank()
+  ) +
+  scale_color_manual("Condition",
+     values = c("#1eb809", "#2654d4", "#cc0502")) + 
+  labs(
+    y = "RoBERTa surprisal",
+    x = "Condition"
+  )
+
+```
+
+In hindsight I think the original `mask_all_mean` method is the best motivated. Summing surprisals leads to higher surprisal for phrases which have more tokens (which doesn't make any sense here). Masking one token at a time probably leads to underestimating surprisal for phrases with multiple tokens that have much higher conditional probability (as the model never has to estimate the likelihood of any of the tokens in the absence of the others).
+
+# Next Sentence Prediction
+
+The next method I tried was to get BERT to predict whether the critical sentence followed from the setting sentence. BERT produces two activation values (one for `not continuation`, one for `continuation`). From what I've read, BERT's prediction is taken to be negative if the second value is higher than the first (and vice versa).
+
+In order to elicit probabilities from these activation values, I just used softmax (which I don't think works very well with so few values, often the values are e.g. (6, -6)). In general the probabilities are all very high and don't show much variation.
+
+If anything Non-Afforded continuations show a slightly higher probability than Afforded and Related continuations.
+
+```{r}
+
+
+e1 %>%
+  ggplot(aes(x = condition, y = bert_nsp, color=condition)) +
+  stat_summary(fun.data="mean_cl_boot", geom="pointrange") + 
+  theme_minimal() + 
+  theme(
+    legend.position = "none"
+  ) +
+  scale_color_manual("Condition",
+     values = c("#1eb809", "#2654d4", "#cc0502")) + 
+  labs(
+    y = "BERT Next Sentence Probability",
+    x = "Condition"
+  )
+
+
+```
+
+Models show no difference of condition for either comparison
+
+```{r}
+
+# RoBERTa
+
+m.aff.rel.bert.nsp.base <- lmer("bert_nsp ~ 1 + (1 | item)",
+                            data=e1.aff.rel,
+                            REML = F)
+m.aff.rel.bert.nsp.full <- lmer("bert_nsp ~ condition + (1 | item)",
+                            data=e1.aff.rel,
+                            REML = F)
+
+summary(m.aff.rel.bert.nsp.full)
+
+anova(m.aff.rel.bert.nsp.base, m.aff.rel.bert.nsp.full)
+
+```
+
+```{r}
+
+
+# RoBERTa
+
+m.aff.naff.bert.nsp.base <- lmer("bert_nsp ~ 1 + (1 | item)",
+                            data=e1.aff.naff,
+                            REML = F)
+m.aff.naff.bert.nsp.full <- lmer("bert_nsp ~ condition + (1 | item)",
+                            data=e1.aff.naff,
+                            REML = F)
+
+summary(m.aff.naff.bert.nsp.full)
+
+anova(m.aff.naff.bert.nsp.base, m.aff.naff.bert.nsp.full)
+
+```
+
+Overall I think this metric just isn't sensitive enough to get at the relatively small manipulation we are interested in. The lack of effect for Related-Afforded means it doesn't seem appropriate to use this metric to test for an effect of Afforded/Non-Afforded.
+
+# Embeddings
+
+The last method, closest to the controls in the original paper, is to find the distance between the embeddings of:
+
+a) The central and distinguishing words in a sentence
+b) The setting and critical sentences
+
+The stimuli did not contain information about the central concept, we used the example in the paper to re-create our best guess for what the central concept is.
+
+For example, in Item 13, we use "pillow", and find the cosine between the contextualised embedding for "pillow" and "leaves".
+
+> Marissa forgot to bring her pillow on her camping trip. As a substitute for her pillow, she filled up an old sweater with leaves.
+
+Where the central or distinguishing phrase is multi-token, we take the mean of the embedding for all tokens. To find the embedding for the sentences, we take the mean of all tokens in the sentence (following this [tutorial](https://mccormickml.com/2019/05/14/BERT-word-embeddings-tutorial/#3-extracting-embeddings), thanks Sean for sending!). We could also try using the [CLS] token).
+
+For all embeddings, I have used the second-to-last layer of BERT. It seems to perform [comparably](https://jalammar.github.io/illustrated-bert/#bert-for-feature-extraction) with more complex strategies.
+
+In all cases, I've taken the cosine distance between the two resulting vectors.
+
+
+## Central-Distinguishing
+
+For the central-distinguishing embedding, we see a similar pattern to the mask results above: the distance for related continuations is lower than for Afforded and Non-Afforded continuations, which are comparable.
+
+```{r}
+
+e1 %>%
+  ggplot(aes(x = condition, y = cd_cosine_bert_ln2, color=condition)) +
+  stat_summary(fun.data="mean_cl_boot", geom="pointrange") + 
+  theme_minimal() + 
+  theme(
+    legend.position = "none"
+  ) +
+  scale_color_manual("Condition",
+     values = c("#1eb809", "#2654d4", "#cc0502")) + 
+  labs(
+    y = "Central-Distinguishing Cosine (BERT)",
+    x = "Condition"
+  )
+
+```
+
+### Related vs Afforded
+
+The model shows a significant positive effect of Afforded vs Related on cosine distance.
+
+```{r}
+
+# Comparison 1: Afforded to related
+m.aff.rel.cd_cosine_bert_ln2.base <- lmer("cd_cosine_bert_ln2 ~ 1 + (1 | item)",
+                            data=e1.aff.rel,
+                            REML = F)
+m.aff.rel.cd_cosine_bert_ln2.full <- lmer("cd_cosine_bert_ln2 ~ condition + (1 | item)",
+                            data=e1.aff.rel,
+                            REML = F)
+
+summary(m.aff.rel.cd_cosine_bert_ln2.full)
+
+```
+
+An LRT also finds a significant improvement in fit for adding condition info.
+
+```{r}
+
+anova(m.aff.rel.cd_cosine_bert_ln2.base, m.aff.rel.cd_cosine_bert_ln2.full)
+
+```
+
+### Afforded vs Non-Afforded
+
+However we see no significant effect of afforded vs non-afforded
+
+```{r}
+
+# Comparison 1: Afforded to related
+m.aff.naff.cd_cosine_bert_ln2.base <- lmer("cd_cosine_bert_ln2 ~ 1 + (1 | item)",
+                            data=e1.aff.naff,
+                            REML = F)
+m.aff.naff.cd_cosine_bert_ln2.full <- lmer("cd_cosine_bert_ln2 ~ condition + (1 | item)",
+                            data=e1.aff.naff,
+                            REML = F)
+
+summary(m.aff.naff.cd_cosine_bert_ln2.full)
+
+```
+
+
+```{r}
+
+anova(m.aff.naff.cd_cosine_bert_ln2.base, m.aff.naff.cd_cosine_bert_ln2.full)
+
+```
+
+## Setting-Critical
+
+There is almost no between-condition variation for setting-critical cosine. As for the NSP method, this measure might not be sensitive enough to the condition manipulation due to aggregating across all sentence tokens.
+
+```{r}
+
+e1 %>%
+  ggplot(aes(x = condition, y = sc_cosine_bert_ln2, color=condition)) +
+  stat_summary(fun.data="mean_cl_boot", geom="pointrange") + 
+  theme_minimal() + 
+  theme(
+    legend.position = "none"
+  ) +
+  scale_color_manual("Condition",
+     values = c("#1eb809", "#2654d4", "#cc0502")) + 
+  labs(
+    y = "Setting-Continuation Cosine (BERT)",
+    x = "Condition"
+  )
+
+```
+

@@ -5,8 +5,10 @@ import openai
 import numpy as np
 from tqdm import tqdm
 
-openai.organization = "org-krZWjVYWySsMZqzv0Vg9b9BZ"
-openai.api_key = "sk-g1SmnWaPHaiypp5mkWr9liOSachFfcWCROnFHJ0T"
+from keys import ORGANIZATION, API_KEY
+
+openai.organization = ORGANIZATION
+openai.api_key = API_KEY
 
 
 def get_total_surprisal(prompt, model="ada"):

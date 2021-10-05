@@ -49,9 +49,9 @@ def main():
     """main"""
 
     # Load BERT
-    bert = BertModel.from_pretrained('bert-base-uncased',
+    bert = BertModel.from_pretrained('bert-large-cased',
                                      output_hidden_states=True)
-    bert_tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
+    bert_tokenizer = BertTokenizer.from_pretrained('bert-large-cased')
     bert.eval()
 
     # Load data
@@ -74,7 +74,7 @@ def main():
         full_stimulus = row.setting + " " + row.critical
 
         # E2 doesn't (appear to) use central words
-        if row.central_word in full_stimulus:
+        if row.central_word != "-" and row.central_word in full_stimulus:
 
             central_emb = get_embedding(bert, bert_tokenizer,
                                         full_stimulus, row.central_word)

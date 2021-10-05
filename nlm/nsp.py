@@ -34,9 +34,9 @@ def main():
     print("Running bert_nsp")
 
     # Load BERT for NSP
-    bert_tokenizer = AutoTokenizer.from_pretrained('bert-base-uncased')
+    bert_tokenizer = AutoTokenizer.from_pretrained('bert-large-cased')
     bert = AutoModelForNextSentencePrediction.from_pretrained(
-        'bert-base-uncased')
+        'bert-large-cased')
     bert.eval()
 
     probs = []

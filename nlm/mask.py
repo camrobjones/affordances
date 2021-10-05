@@ -283,12 +283,12 @@ def main():
     stimuli = pd.read_csv("data/clean/stimuli_processed.csv")
 
     # Load models
-    bert = AutoModelForCausalLM.from_pretrained("bert-base-uncased")
-    bert_tokenizer = AutoTokenizer.from_pretrained("bert-base-uncased")
+    bert = AutoModelForCausalLM.from_pretrained("bert-large-cased")
+    bert_tokenizer = AutoTokenizer.from_pretrained("bert-large-cased")
     bert.eval()
 
-    roberta = AutoModelForCausalLM.from_pretrained("roberta-base")
-    roberta_tokenizer = AutoTokenizer.from_pretrained("roberta-base")
+    roberta = AutoModelForCausalLM.from_pretrained("roberta-large")
+    roberta_tokenizer = AutoTokenizer.from_pretrained("roberta-large")
     roberta.eval()
 
     print("Running bert_mask_all_mean")

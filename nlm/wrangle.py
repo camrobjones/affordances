@@ -4,7 +4,23 @@ Data wrangling
 """
 import re
 
+from wordfreq import word_frequency, zipf_frequency
 import pandas as pd
+import numpy as np
+
+
+def get_dw_freqs(stimuli):
+    """Get the distinguishing word frequencies for all stimuli:"""
+
+    stimuli["dw_freq"] = [word_frequency(w, lang="en")
+                          for w in stimuli.distinguishing_word]
+
+    stimuli["dw_freq_log"] = np.log(stimuli["dw_freq"])
+
+    stimuli["dw_freq_zipf"] = [zipf_frequency(w, lang="en")
+                               for w in stimuli.distinguishing_word]
+
+    return stimuli
 
 
 def main():
@@ -37,6 +53,8 @@ def main():
 
     stimuli["full_masked"] = stimuli.setting + " " + stimuli.critical_masked
 
+    # Get distinguishing word frequencies
+    stimuli = get_dw_freqs(stimuli)
 
     """
     Write processed data

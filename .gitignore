@@ -2,3 +2,4 @@ notes.txt
 .DS_Store
 *__pycache__/
 stats/.Rproj.user
+.Rproj.user
